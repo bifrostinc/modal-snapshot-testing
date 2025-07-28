@@ -89,7 +89,22 @@ def main():
 
     print("Sandbox created and running (dockerd NOT started)")
     
-    print("Attempting to create snapshot...")
+    # Find and print all .sock files in the filesystem
+    print("Finding all .sock files in the filesystem...")
+    find_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null || true")
+    sock_files = find_cmd.stdout.read().strip()
+    find_cmd.wait()
+    
+    if sock_files:
+        sock_list = sock_files.split('\n')
+        print(f"Found {len(sock_list)} socket files:")
+        for sock in sock_list:
+            if sock:  # Skip empty lines
+                print(f"  - {sock}")
+    else:
+        print("No socket files found")
+    
+    print("\nAttempting to create snapshot...")
     image = sb.snapshot_filesystem()
     print("Snapshot created successfully!")
     print(f"Snapshot image: {image}")
