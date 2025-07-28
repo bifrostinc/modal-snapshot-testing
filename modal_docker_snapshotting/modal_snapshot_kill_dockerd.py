@@ -196,9 +196,9 @@ def main():
     else:
         print("No socket files found")
     
-    # Delete all socket files
-    print("\nDeleting all socket files...")
-    delete_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | xargs -r rm -f")
+    # Delete all socket files except modal ones
+    print("\nDeleting all socket files (except modal)...")
+    delete_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | grep -v modal | xargs -r rm -f")
     delete_cmd.wait()
     
     # Verify deletion
