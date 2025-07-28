@@ -161,9 +161,9 @@ def main():
     if p.returncode != 0:
         raise Exception(f"Docker run failed: {p.stderr.read()}")
     
-    # Kill dockerd before attempting snapshot
-    print("Killing dockerd...")
-    p = sb.exec("bash", "-c", "pkill -9 dockerd || true")
+    # Kill dockerd gracefully before attempting snapshot
+    print("Killing dockerd gracefully...")
+    p = sb.exec("bash", "-c", "pkill dockerd || true")
     p.wait()
     
     # Wait a moment to ensure it's dead
