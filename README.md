@@ -5,11 +5,11 @@ Snapshots fail when dockerd has been started with `enable_docker_in_gvisor: True
 
 ## Test Results
 
-###  Successful Snapshots
+### Successful Snapshots
 - `modal_simple_snapshot.py` - Basic sandbox without Docker
 - `modal_snapshot_no_dockerd.py` - Docker-in-gvisor enabled but dockerd never started (requires 5s sleep)
 
-### L Failed Snapshots  
+### Failed Snapshots  
 - `modal_docker_example_snapshot.py` - Dockerd running
 - `modal_snapshot_kill_dockerd.py` - Dockerd started then killed, sockets cleaned
 - `modal_snapshot_clean_sockets.py` - Dockerd running, non-modal sockets deleted
