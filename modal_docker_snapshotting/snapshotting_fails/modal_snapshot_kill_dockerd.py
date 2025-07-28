@@ -80,17 +80,38 @@ dockerfile_image = modal.Image.from_dockerfile("Dockerfile.docker_in_gvisor")
 
 def main():
     print("Looking up modal.Sandbox app")
-    app = modal.App.lookup("docker-demo", create_if_missing=True)
+    app = modal.App.lookup("docker-kill-demo", create_if_missing=True)
     print("Creating sandbox")
 
     with modal.enable_output():
+        # Use sleep infinity as init command instead of start-dockerd.sh
         sb = modal.Sandbox.create(
-            "/start-dockerd.sh",
+            "sleep",
+            "infinity",
             timeout=60 * 60,
             app=app,
             image=dockerfile_image,
             experimental_options={"enable_docker_in_gvisor": True},
         )
+
+    print("Sandbox created with sleep infinity")
+    
+    # Start dockerd manually in the background
+    print("Starting dockerd in the background...")
+    p = sb.exec("/start-dockerd.sh")
+    # Don't wait - it's a long-lived process
+    
+    # Wait a bit for dockerd to start
+    print("Waiting for dockerd to start...")
+    import time
+    time.sleep(5)
+    
+    # Verify dockerd is running
+    print("Checking dockerd status...")
+    p = sb.exec("bash", "-c", "ps aux | grep dockerd | grep -v grep")
+    output = p.stdout.read()
+    print(f"Dockerd process: {output}")
+    p.wait()
 
     # Here's a simple Dockerfile that we'll build and run within Modal.
     dockerfile = """
@@ -139,6 +160,53 @@ def main():
     p.wait()
     if p.returncode != 0:
         raise Exception(f"Docker run failed: {p.stderr.read()}")
+    
+    # Kill dockerd gracefully before attempting snapshot
+    print("Killing dockerd gracefully...")
+    p = sb.exec("bash", "-c", "pkill dockerd || true")
+    p.wait()
+    
+    # Kill containerd as well
+    print("Killing containerd gracefully...")
+    p = sb.exec("bash", "-c", "pkill containerd || true")
+    p.wait()
+    
+    # Wait a moment to ensure they're dead
+    time.sleep(2)
+    
+    # Verify dockerd and containerd are killed
+    print("Verifying dockerd and containerd are killed...")
+    p = sb.exec("bash", "-c", "ps aux | grep -E 'dockerd|containerd' | grep -v grep || echo 'dockerd/containerd not found'")
+    output = p.stdout.read()
+    print(f"Process check: {output}")
+    p.wait()
+    
+    # Find and print all .sock files
+    print("\nFinding all .sock files in the filesystem...")
+    find_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null || true")
+    sock_files = find_cmd.stdout.read().strip()
+    find_cmd.wait()
+    
+    if sock_files:
+        sock_list = sock_files.split('\n')
+        print(f"Found {len(sock_list)} socket files:")
+        for sock in sock_list:
+            if sock:  # Skip empty lines
+                print(f"  - {sock}")
+    else:
+        print("No socket files found")
+    
+    # Delete all socket files except modal ones
+    print("\nDeleting all socket files (except modal)...")
+    delete_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | grep -v modal | xargs -r rm -f")
+    delete_cmd.wait()
+    
+    # Verify deletion
+    print("Verifying socket files are deleted...")
+    verify_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | wc -l")
+    remaining_count = verify_cmd.stdout.read().strip()
+    verify_cmd.wait()
+    print(f"Remaining socket files: {remaining_count}")
 
     print("Creating snapshot")
     image = sb.snapshot_filesystem()

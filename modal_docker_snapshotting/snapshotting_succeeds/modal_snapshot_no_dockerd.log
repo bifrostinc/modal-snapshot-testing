@@ -1,0 +1,9 @@
+Looking up modal.Sandbox app
+Creating sandbox with docker-in-gvisor but without starting dockerd
+Sandbox created and running (dockerd NOT started)
+Sleeping for 5 seconds...
+Sleep complete
+Attempting to create snapshot...
+Snapshot created successfully!
+Snapshot image: Image()
+Sandbox terminated

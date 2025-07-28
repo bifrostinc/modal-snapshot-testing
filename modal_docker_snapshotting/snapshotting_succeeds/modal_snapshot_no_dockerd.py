@@ -2,14 +2,7 @@ import os
 
 import modal
 
-# Use the 2025.06 Modal Image Builder which avoids the need to install Modal client
-# dependencies into the container image.
-
 os.environ["MODAL_IMAGE_BUILDER_VERSION"] = "2025.06"
-
-# Here's a basic Dockerfile that installs docker with buildx and ensures
-# that the docker daemon is started with the correct network configuration
-# upon modal.Sandbox startup.
 
 dockerfile_content = """
 FROM ubuntu:22.04
@@ -80,70 +73,33 @@ dockerfile_image = modal.Image.from_dockerfile("Dockerfile.docker_in_gvisor")
 
 def main():
     print("Looking up modal.Sandbox app")
-    app = modal.App.lookup("docker-demo", create_if_missing=True)
-    print("Creating sandbox")
+    app = modal.App.lookup("no-dockerd-snapshot", create_if_missing=True)
+    print("Creating sandbox with docker-in-gvisor but without starting dockerd")
 
     with modal.enable_output():
+        # Use sleep infinity instead of starting dockerd
         sb = modal.Sandbox.create(
-            "/start-dockerd.sh",
+            "sleep",
+            "infinity",
             timeout=60 * 60,
             app=app,
             image=dockerfile_image,
             experimental_options={"enable_docker_in_gvisor": True},
         )
 
-    # Here's a simple Dockerfile that we'll build and run within Modal.
-    dockerfile = """
-    FROM ubuntu
-    RUN apt-get update
-    RUN apt-get install -y cowsay curl
-    RUN mkdir -p /usr/share/cowsay/cows/
-    RUN curl -o /usr/share/cowsay/cows/docker.cow https://raw.githubusercontent.com/docker/whalesay/master/docker.cow
-    ENTRYPOINT ["/usr/games/cowsay", "-f", "docker.cow"]
-    """
-    with sb.open("/build/Dockerfile", "w") as f:
-        f.write(dockerfile)
-
-    print("Building docker image")
-    p = sb.exec("docker", "build", "--network=host", "-t", "whalesay", "/build")
-    for l in p.stdout:
-        print(l, end="")
-    p.wait()
-    print("--------------------------------")
-    if p.returncode != 0:
-        print(p.stderr.read())
-        raise Exception("Docker build failed")
-
-    # Get the Sandbox to run the built image and show this:
-    #
-    #  ________
-    # < Hello! >
-    #  --------
-    #     \
-    #      \
-    #       \
-    #                     ##         .
-    #               ## ## ##        ==
-    #            ## ## ## ## ##    ===
-    #        /"""""""""""""""""\___/ ===
-    #       {                       /  ===-
-    #        \______ O           __/
-    #          \    \         __/
-    #           \____\_______/
-
-    print("Running Docker image")
-    # Note we can't use -it here because we're not in a TTY.
-    p = sb.exec("docker", "run", "--rm", "whalesay", "Hello!")
-    reply = p.stdout.read()
-    print(reply)
-    p.wait()
-    if p.returncode != 0:
-        raise Exception(f"Docker run failed: {p.stderr.read()}")
-
-    print("Creating snapshot")
+    print("Sandbox created and running (dockerd NOT started)")
+    
+    # Sleep for 5 seconds to test if it's a timing issue
+    print("Sleeping for 5 seconds...")
+    import time
+    time.sleep(5)
+    print("Sleep complete")
+    
+    print("Attempting to create snapshot...")
     image = sb.snapshot_filesystem()
-    print("Snapshot created")
-    print(image)
+    print("Snapshot created successfully!")
+    print(f"Snapshot image: {image}")
+    
     sb.terminate()
     print("Sandbox terminated")
 

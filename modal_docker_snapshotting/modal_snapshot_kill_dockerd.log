@@ -1,0 +1,51 @@
+Looking up modal.Sandbox app
+Creating sandbox
+Sandbox created with sleep infinity
+Starting dockerd in the background...
+Waiting for dockerd to start...
+Checking dockerd status...
+Dockerd process: root         3  4.0  0.0 2279964 142252 ?      Ssl  20:28   0:00 /usr/bin/dockerd --iptables=false --ip6tables=false -D
+
+Building docker image
+--------------------------------
+Running Docker image
+ ________
+< Hello! >
+ --------
+    \
+     \
+      \
+                    ##         .
+              ## ## ##        ==
+           ## ## ## ## ##    ===
+       /"""""""""""""""""\___/ ===
+      {                       /  ===-
+       \______ O           __/
+         \    \         __/
+          \____\_______/
+
+
+Killing dockerd gracefully...
+Killing containerd gracefully...
+Verifying dockerd and containerd are killed...
+Process check: dockerd/containerd not found
+
+
+Finding all .sock files in the filesystem...
+Found 2 socket files:
+  - /run/docker/containerd/containerd-debug.sock
+  - /run/modal_daemon/modal_daemon.sock
+
+Deleting all socket files (except modal)...
+Verifying socket files are deleted...
+Remaining socket files: 1
+Creating snapshot
+Traceback (most recent call last):
+  File "/Users/smehmood/src/experimental/modal_docker_snapshotting/modal_snapshot_kill_dockerd.py", line 220, in <module>
+    main()
+  File "/Users/smehmood/src/experimental/modal_docker_snapshotting/modal_snapshot_kill_dockerd.py", line 212, in main
+    image = sb.snapshot_filesystem()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/smehmood/src/experimental/modal_docker_snapshotting/.venv/lib/python3.11/site-packages/modal/sandbox.py", line 542, in snapshot_filesystem
+    raise ExecutionError(resp.result.exception)
+modal.exception.ExecutionError: Failed to create image
