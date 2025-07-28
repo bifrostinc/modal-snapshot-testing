@@ -166,15 +166,47 @@ def main():
     p = sb.exec("bash", "-c", "pkill dockerd || true")
     p.wait()
     
-    # Wait a moment to ensure it's dead
+    # Kill containerd as well
+    print("Killing containerd gracefully...")
+    p = sb.exec("bash", "-c", "pkill containerd || true")
+    p.wait()
+    
+    # Wait a moment to ensure they're dead
     time.sleep(2)
     
-    # Verify dockerd is killed
-    print("Verifying dockerd is killed...")
-    p = sb.exec("bash", "-c", "ps aux | grep dockerd | grep -v grep || echo 'dockerd not found'")
+    # Verify dockerd and containerd are killed
+    print("Verifying dockerd and containerd are killed...")
+    p = sb.exec("bash", "-c", "ps aux | grep -E 'dockerd|containerd' | grep -v grep || echo 'dockerd/containerd not found'")
     output = p.stdout.read()
-    print(f"Dockerd check: {output}")
+    print(f"Process check: {output}")
     p.wait()
+    
+    # Find and print all .sock files
+    print("\nFinding all .sock files in the filesystem...")
+    find_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null || true")
+    sock_files = find_cmd.stdout.read().strip()
+    find_cmd.wait()
+    
+    if sock_files:
+        sock_list = sock_files.split('\n')
+        print(f"Found {len(sock_list)} socket files:")
+        for sock in sock_list:
+            if sock:  # Skip empty lines
+                print(f"  - {sock}")
+    else:
+        print("No socket files found")
+    
+    # Delete all socket files
+    print("\nDeleting all socket files...")
+    delete_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | xargs -r rm -f")
+    delete_cmd.wait()
+    
+    # Verify deletion
+    print("Verifying socket files are deleted...")
+    verify_cmd = sb.exec("bash", "-c", "find / -name '*.sock' -type s 2>/dev/null | wc -l")
+    remaining_count = verify_cmd.stdout.read().strip()
+    verify_cmd.wait()
+    print(f"Remaining socket files: {remaining_count}")
 
     print("Creating snapshot")
     image = sb.snapshot_filesystem()
