@@ -98,8 +98,8 @@ def main():
     
     # Start dockerd manually in the background
     print("Starting dockerd in the background...")
-    p = sb.exec("bash", "-c", "/start-dockerd.sh &")
-    p.wait()
+    p = sb.exec("/start-dockerd.sh")
+    # Don't wait - it's a long-lived process
     
     # Wait a bit for dockerd to start
     print("Waiting for dockerd to start...")
