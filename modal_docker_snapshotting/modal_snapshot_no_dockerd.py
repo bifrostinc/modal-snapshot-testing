@@ -89,32 +89,10 @@ def main():
 
     print("Sandbox created and running (dockerd NOT started)")
     
-    # Test that we can run commands
-    print("Testing basic commands...")
-    p = sb.exec("echo", "Hello from sandbox without dockerd!")
-    output = p.stdout.read()
-    print(f"Output: {output}")
-    p.wait()
-    
-    # Check if docker daemon is running (it should not be)
-    print("Checking docker daemon status...")
-    p = sb.exec("bash", "-c", "ps aux | grep dockerd | grep -v grep || echo 'dockerd not running'")
-    output = p.stdout.read()
-    print(f"Docker status: {output}")
-    p.wait()
-    
-    # Create some test files
-    print("Creating test files...")
-    sb.exec("mkdir", "-p", "/no_dockerd_test").wait()
-    sb.exec("echo", "Snapshot without dockerd running", stdout=sb.open("/no_dockerd_test/info.txt", "w")).wait()
-    
     print("Attempting to create snapshot...")
-    try:
-        image = sb.snapshot_filesystem()
-        print("Snapshot created successfully!")
-        print(f"Snapshot image: {image}")
-    except Exception as e:
-        print(f"Snapshot failed: {e}")
+    image = sb.snapshot_filesystem()
+    print("Snapshot created successfully!")
+    print(f"Snapshot image: {image}")
     
     sb.terminate()
     print("Sandbox terminated")
