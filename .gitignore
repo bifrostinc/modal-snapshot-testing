@@ -46,3 +46,5 @@ uv.lock
 
 # Project specific
 modal_docker_snapshotting/.python-version
+modal_docker_snapshotting/Dockerfile.docker_in_gvisor
+modal_docker_snapshotting/start-dockerd.sh
