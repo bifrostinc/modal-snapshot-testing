@@ -29,3 +29,45 @@ Traceback (most recent call last):
   File "/Users/smehmood/src/experimental/modal_docker_snapshotting/.venv/lib/python3.11/site-packages/modal/sandbox.py", line 542, in snapshot_filesystem
     raise ExecutionError(resp.result.exception)
 modal.exception.ExecutionError: Failed to create image
+
+--- MULTIPLE ITERATIONS TEST RESULTS ---
+Date: 2025-08-14
+Script: modal_docker_example_snapshot_iterations.py
+
+Test run with 5 iterations:
+==================================================
+RESULTS SUMMARY
+==================================================
+Total iterations: 5
+Successes: 0 (0.0%)
+Failures: 5 (100.0%)
+
+Failure details:
+  - Iteration 1: Failed to create image
+  - Iteration 2: Failed to create image
+  - Iteration 3: Failed to create image
+  - Iteration 4: Failed to create image
+  - Iteration 5: Failed to create image
+
+Note: All iterations failed with the same "Failed to create image" error,
+indicating a consistent issue with snapshot creation in the current environment.
+
+--- UPDATED VERSION WITH PRE-BUILT IMAGES ---
+Date: 2025-08-14
+Script: modal_docker_example_snapshot_iterations.py (updated)
+
+Changed approach: Instead of building a Docker image inside the sandbox,
+now using pre-built images from Docker Hub (hello-world).
+
+Test run with 3 iterations:
+==================================================
+RESULTS SUMMARY
+==================================================
+Total iterations: 3
+Successes: 3 (100.0%)
+Failures: 0 (0.0%)
+
+✅ SUCCESS: All snapshots created successfully after switching to pre-built images!
+
+Key finding: The issue was with building Docker images inside the sandbox.
+Using pre-built images from Docker Hub resolves the snapshot creation failures.
