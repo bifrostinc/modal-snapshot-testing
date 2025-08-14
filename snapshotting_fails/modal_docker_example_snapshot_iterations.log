@@ -1,0 +1,812 @@
+✦ at 16:00:19 → uv run snapshotting_fails/modal_docker_example_snapshot_iterations.py 25
+Running 25 iterations of snapshot testing
+==================================================
+Looking up modal.Sandbox app
+
+Creating new sandbox for iteration 1
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 1 ===
+Creating snapshot
+Snapshot failed: Failed to create image
+Sandbox terminated
+
+Creating new sandbox for iteration 2
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 2 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 3
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 3 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 4
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 4 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 5
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 5 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 6
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 6 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 7
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 7 ===
+Creating snapshot
+Snapshot failed: Failed to create image
+Sandbox terminated
+
+Creating new sandbox for iteration 8
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 8 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 9
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 9 ===
+Creating snapshot
+Snapshot failed: Failed to create image
+Sandbox terminated
+
+Creating new sandbox for iteration 10
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 10 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 11
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 11 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 12
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 12 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 13
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 13 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 14
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 14 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 15
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 15 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 16
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 16 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 17
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 17 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 18
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 18 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 19
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 19 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 20
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 20 ===
+Creating snapshot
+Snapshot failed: Failed to create image
+Sandbox terminated
+
+Creating new sandbox for iteration 21
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 21 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 22
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 22 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 23
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 23 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 24
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 24 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+Creating new sandbox for iteration 25
+Waiting for Docker daemon to initialize
+Pulling pre-built Docker image (hello-world)
+Using default tag: latest
+latest: Pulling from library/hello-world
+17eec7bbc9d7: Pulling fs layer
+17eec7bbc9d7: Verifying Checksum
+17eec7bbc9d7: Download complete
+17eec7bbc9d7: Pull complete
+Digest: sha256:1d983076c7facf19a9a53a7a4855dbd736bf5206e3bfc5142a4c1da4ed44dedc
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+--------------------------------
+Running Docker image
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client,
+
+=== Iteration 25 ===
+Creating snapshot
+Snapshot created
+Image()
+Sandbox terminated
+
+==================================================
+RESULTS SUMMARY
+==================================================
+Total iterations: 25
+Successes: 21 (84.0%)
+Failures: 4 (16.0%)
+
+Failure details:
+  - Iteration 1: Failed to create image
+  - Iteration 7: Failed to create image
+  - Iteration 9: Failed to create image
+  - Iteration 20: Failed to create image
