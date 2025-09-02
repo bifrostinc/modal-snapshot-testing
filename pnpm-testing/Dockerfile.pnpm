@@ -1,0 +1,50 @@
+FROM node:22-slim
+
+ENV DEBIAN_FRONTEND="noninteractive"
+
+# Install essential packages
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    ca-certificates \
+    iproute2 \
+    iptables \
+    git \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker from official Docker repository
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc
+
+RUN echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+RUN apt-get update && \
+    apt-get install -y \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+# Create working directory
+WORKDIR /workspace
+
+# Clone Slidev repository (medium-sized pnpm monorepo)
+RUN git clone --depth 1 https://github.com/slidevjs/slidev.git /workspace/slidev
+
+# Pre-configure pnpm to use a specific store location
+RUN pnpm config set store-dir /root/.pnpm-store
+
+# Copy the docker startup script
+COPY start-dockerd.sh /start-dockerd.sh
+RUN chmod +x /start-dockerd.sh
