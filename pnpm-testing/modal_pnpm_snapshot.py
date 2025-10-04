@@ -205,6 +205,8 @@ def main():
                     "top_entries_sample": data["top_entries"][:5],
                     "pnpm_entries_sample": data["pnpm_entries"][:5],
                     "sample_package_paths": data["sample_packages"][:5],
+                    "top_entry_count": data["top_entry_count"],
+                    "pnpm_entry_count": data["pnpm_entry_count"],
                 }
             )
         )
