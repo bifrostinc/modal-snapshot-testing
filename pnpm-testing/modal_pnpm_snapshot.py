@@ -107,7 +107,7 @@ def main():
     def run_python_json(sb_handle, script, step_description):
         print(f"\n{step_description}")
         command = "cd /workspace/slidev && python3 - <<'PY'\n" + script + "\nPY\n"
-        proc = sb_handle.exec("bash", "-lc", command)
+        proc = sb_handle.exec("bash", "-lc", command, timeout=600)
         stdout_text = proc.stdout.read()
         proc.wait()
         stderr_text = proc.stderr.read()
