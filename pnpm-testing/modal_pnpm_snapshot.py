@@ -104,9 +104,20 @@ def main():
     print(f"   Total packages installed: {package_count}")
 
     # Helper utilities for manifest generation and validation
-    def run_python_json(sb_handle, script, step_description):
+    def run_script_json(sb_handle, script, step_description, *, interpreter="python3"):
         print(f"\n{step_description}")
-        command = "cd /workspace/slidev && python3 - <<'PY'\n" + script + "\nPY\n"
+        if interpreter == "python3":
+            command = "cd /workspace/slidev && python3 - <<'PY'\n" + script + "\nPY\n"
+        elif interpreter == "bash":
+            command = "cd /workspace/slidev && bash <<'BASH'\n" + script + "\nBASH\n"
+        else:
+            command = (
+                "cd /workspace/slidev && "
+                + interpreter
+                + " <<'MODALSCRIPT'\n"
+                + script
+                + "\nMODALSCRIPT\n"
+            )
         proc = sb_handle.exec("bash", "-lc", command, timeout=600)
         stdout_text = proc.stdout.read()
         proc.wait()
@@ -170,10 +181,11 @@ JSON
         """
     )
 
-    manifest_rc, manifest_summary = run_python_json(
+    manifest_rc, manifest_summary = run_script_json(
         sb,
         manifest_script,
         "9. Recording node_modules manifest before suspend...",
+        interpreter="bash",
     )
 
     if manifest_rc != 0:
@@ -335,7 +347,7 @@ JSON
             """
         )
 
-        validation_rc, validation_summary = run_python_json(
+        validation_rc, validation_summary = run_script_json(
             resume_sb,
             validation_script,
             "14. Validating node_modules manifest after resume...",
