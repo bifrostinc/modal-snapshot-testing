@@ -27,8 +27,10 @@ uv run pnpm-testing/modal_pnpm_snapshot.py
   1. Creates a Modal sandbox with Docker-in-gvisor
   2. Starts Docker daemon
   3. Runs `pnpm install` in the Slidev repository
-  4. Attempts to create a filesystem snapshot
-  5. Reports success/failure with timing metrics
+  4. Records a complete manifest of `node_modules`
+  5. Takes a filesystem snapshot and resumes from it
+  6. Validates that all `node_modules` entries survive the resume (fails with diff preview when they do not)
+  7. Reports success/failure with timing metrics
 
 - `Dockerfile.pnpm` - Docker image that includes:
   - Node.js 22
