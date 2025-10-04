@@ -106,7 +106,7 @@ def main():
     # Helper utilities for manifest generation and validation
     def run_python_json(sb_handle, script, step_description):
         print(f"\n{step_description}")
-        command = "cd /workspace/slidev && python - <<'PY'\n" + script + "\nPY\n"
+        command = "cd /workspace/slidev && python3 - <<'PY'\n" + script + "\nPY\n"
         proc = sb_handle.exec("bash", "-lc", command)
         stdout_text = proc.stdout.read()
         proc.wait()
