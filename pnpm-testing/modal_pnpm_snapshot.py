@@ -180,7 +180,7 @@ def main():
                 "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 25"
             ),
             "sample_packages": capture_lines(
-                "find node_modules -maxdepth 2 -name package.json -type f | LC_ALL=C sort | head -n 100"
+                "find node_modules/.pnpm -maxdepth 3 -name package.json -type f | LC_ALL=C sort | head -n 50"
             ),
             "top_entry_count": len([name for name in os.listdir(root)]),
         }
