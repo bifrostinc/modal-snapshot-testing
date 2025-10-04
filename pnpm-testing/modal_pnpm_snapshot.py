@@ -287,32 +287,6 @@ JSON
 
             current_manifest_path = "node_modules_manifest_after.txt"
 
-            diff_script = f'''
-            set -euo pipefail
-            expected="{expected_manifest_path}"
-            current="{current_manifest_path}"
-            missing="node_modules_manifest_missing.txt"
-            extra="node_modules_manifest_extra.txt"
-            comm -23 "$expected" "$current" > "$missing"
-            comm -13 "$expected" "$current" > "$extra"
-            '''
-
-            result = subprocess.run(
-                ["bash", "-lc", diff_script], capture_output=True, text=True
-            )
-            if result.returncode != 0:
-                print(
-                    json.dumps(
-                        {
-                            "error": "manifest_diff_failed",
-                            "returncode": result.returncode,
-                            "stdout": result.stdout.strip(),
-                            "stderr": result.stderr.strip(),
-                        }
-                    )
-                )
-                sys.exit(result.returncode or 1)
-
             current_stats = {"files": 0, "directories": 0, "symlinks": 0}
             current_count = 0
             with open(current_manifest_path, "r", encoding="utf-8") as fh:
@@ -329,27 +303,57 @@ JSON
                     elif prefix == "L":
                         current_stats["symlinks"] += 1
 
-            def count_lines(path: str) -> int:
-                count = 0
-                with open(path, "r", encoding="utf-8") as fh:
-                    for _ in fh:
-                        count += 1
-                return count
+            def diff_manifests(expected_path: str, current_path: str, limit: int = 20):
+                missing_count = 0
+                extra_count = 0
+                missing_preview: list[str] = []
+                extra_preview: list[str] = []
 
-            def preview(path: str, limit: int = 20) -> list[str]:
-                rows: list[str] = []
-                with open(path, "r", encoding="utf-8") as fh:
-                    for idx, raw in enumerate(fh):
-                        if idx >= limit:
-                            break
-                        rows.append(raw.rstrip("\n"))
-                return rows
+                with open(expected_path, "r", encoding="utf-8") as expected_fh,
+                    open(current_path, "r", encoding="utf-8") as current_fh:
 
-            missing_path = "node_modules_manifest_missing.txt"
-            extra_path = "node_modules_manifest_extra.txt"
+                    expected_line = expected_fh.readline()
+                    current_line = current_fh.readline()
 
-            missing_count = count_lines(missing_path)
-            extra_count = count_lines(extra_path)
+                    while expected_line or current_line:
+                        if not current_line:
+                            value = expected_line.rstrip("\n")
+                            missing_count += 1
+                            if len(missing_preview) < limit:
+                                missing_preview.append(value)
+                            expected_line = expected_fh.readline()
+                            continue
+
+                        if not expected_line:
+                            value = current_line.rstrip("\n")
+                            extra_count += 1
+                            if len(extra_preview) < limit:
+                                extra_preview.append(value)
+                            current_line = current_fh.readline()
+                            continue
+
+                        expected_value = expected_line.rstrip("\n")
+                        current_value = current_line.rstrip("\n")
+
+                        if expected_value == current_value:
+                            expected_line = expected_fh.readline()
+                            current_line = current_fh.readline()
+                        elif expected_value < current_value:
+                            missing_count += 1
+                            if len(missing_preview) < limit:
+                                missing_preview.append(expected_value)
+                            expected_line = expected_fh.readline()
+                        else:
+                            extra_count += 1
+                            if len(extra_preview) < limit:
+                                extra_preview.append(current_value)
+                            current_line = current_fh.readline()
+
+                return missing_count, extra_count, missing_preview, extra_preview
+
+            missing_count, extra_count, missing_preview, extra_preview = diff_manifests(
+                expected_manifest_path, current_manifest_path
+            )
 
             def sha256_file(path: str) -> str:
                 digest = hashlib.sha256()
@@ -365,8 +369,8 @@ JSON
                 "current_hash": sha256_file(current_manifest_path),
                 "missing_count": missing_count,
                 "extra_count": extra_count,
-                "missing_preview": preview(missing_path),
-                "extra_preview": preview(extra_path),
+                "missing_preview": missing_preview,
+                "extra_preview": extra_preview,
                 "expected_stats": manifest.get("stats"),
                 "current_stats": current_stats,
             }
