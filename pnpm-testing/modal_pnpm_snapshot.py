@@ -287,17 +287,38 @@ JSON
 
             current_manifest_path = "node_modules_manifest_after.txt"
 
-            expected_set: set[str] = set()
-            with open(expected_manifest_path, "r", encoding="utf-8") as fh:
-                for raw in fh:
-                    expected_set.add(raw.rstrip("\n"))
+            diff_script = f'''
+            set -euo pipefail
+            expected="{expected_manifest_path}"
+            current="{current_manifest_path}"
+            missing="node_modules_manifest_missing.txt"
+            extra="node_modules_manifest_extra.txt"
+            comm -23 "$expected" "$current" > "$missing"
+            comm -13 "$expected" "$current" > "$extra"
+            '''
 
-            current_set: set[str] = set()
+            result = subprocess.run(
+                ["bash", "-lc", diff_script], capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                print(
+                    json.dumps(
+                        {
+                            "error": "manifest_diff_failed",
+                            "returncode": result.returncode,
+                            "stdout": result.stdout.strip(),
+                            "stderr": result.stderr.strip(),
+                        }
+                    )
+                )
+                sys.exit(result.returncode or 1)
+
             current_stats = {"files": 0, "directories": 0, "symlinks": 0}
+            current_count = 0
             with open(current_manifest_path, "r", encoding="utf-8") as fh:
                 for raw in fh:
+                    current_count += 1
                     line = raw.rstrip("\n")
-                    current_set.add(line)
                     if not line:
                         continue
                     prefix = line.split("\t", 1)[0]
@@ -308,6 +329,28 @@ JSON
                     elif prefix == "L":
                         current_stats["symlinks"] += 1
 
+            def count_lines(path: str) -> int:
+                count = 0
+                with open(path, "r", encoding="utf-8") as fh:
+                    for _ in fh:
+                        count += 1
+                return count
+
+            def preview(path: str, limit: int = 20) -> list[str]:
+                rows: list[str] = []
+                with open(path, "r", encoding="utf-8") as fh:
+                    for idx, raw in enumerate(fh):
+                        if idx >= limit:
+                            break
+                        rows.append(raw.rstrip("\n"))
+                return rows
+
+            missing_path = "node_modules_manifest_missing.txt"
+            extra_path = "node_modules_manifest_extra.txt"
+
+            missing_count = count_lines(missing_path)
+            extra_count = count_lines(extra_path)
+
             def sha256_file(path: str) -> str:
                 digest = hashlib.sha256()
                 with open(path, "rb") as fh:
@@ -315,18 +358,15 @@ JSON
                         digest.update(chunk)
                 return digest.hexdigest()
 
-            missing = sorted(expected_set - current_set)[:20]
-            extra = sorted(current_set - expected_set)[:20]
-
             summary = {
-                "expected_count": len(expected_set),
-                "current_count": len(current_set),
+                "expected_count": manifest.get("entry_count"),
+                "current_count": current_count,
                 "expected_hash": manifest.get("hash"),
                 "current_hash": sha256_file(current_manifest_path),
-                "missing_count": len(expected_set - current_set),
-                "extra_count": len(current_set - expected_set),
-                "missing_preview": missing,
-                "extra_preview": extra,
+                "missing_count": missing_count,
+                "extra_count": extra_count,
+                "missing_preview": preview(missing_path),
+                "extra_preview": preview(extra_path),
                 "expected_stats": manifest.get("stats"),
                 "current_stats": current_stats,
             }
@@ -334,8 +374,8 @@ JSON
             print(json.dumps(summary))
 
             if (
-                summary["missing_count"]
-                or summary["extra_count"]
+                missing_count
+                or extra_count
                 or (manifest.get("hash") and manifest["hash"] != summary["current_hash"])
             ):
                 sys.exit(1)
