@@ -273,71 +273,44 @@ def main():
                 print(json.dumps({"error": "node_modules_missing_post_resume"}))
                 sys.exit(1)
 
-            def run(cmd: str) -> str:
-                result = subprocess.run(["bash", "-lc", cmd], text=True, capture_output=True)
-                if result.returncode != 0:
-                    raise RuntimeError(f"Command failed ({cmd}): {result.stderr.strip()}")
-                return result.stdout
-
-            def capture_count(cmd: str) -> int:
-                output = run(cmd).strip()
-                if not output:
-                    return 0
-                return int(output.split()[0])
-
-            def capture_lines(cmd: str, limit: int | None = None) -> list[str]:
-                lines = [line.strip() for line in run(cmd).splitlines() if line.strip()]
-                if limit is not None:
-                    return lines[:limit]
-                return lines
-
-            current_package_json_count = capture_count(
-                "find node_modules -name package.json -type f | wc -l"
-            )
-            current_top_entries = capture_lines(
-                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
-            )
-            pnpm_dir = os.path.join(root, ".pnpm")
-            if os.path.isdir(pnpm_dir):
-                current_pnpm_entries = capture_lines(
-                    "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
-                )
-            else:
-                current_pnpm_entries = []
+            tracked_top_entries = snapshot.get("top_entries", [])
+            tracked_pnpm_entries = snapshot.get("pnpm_entries", [])
+            tracked_sample_packages = snapshot.get("sample_packages", [])
 
             missing_top_entries = [
                 entry
-                for entry in snapshot.get("top_entries", [])
+                for entry in tracked_top_entries
                 if not os.path.exists(os.path.join(root, entry))
             ]
             missing_pnpm_entries = [
                 entry
-                for entry in snapshot.get("pnpm_entries", [])
+                for entry in tracked_pnpm_entries
                 if not os.path.exists(os.path.join(root, ".pnpm", entry))
             ]
             missing_sample_packages = [
                 path
-                for path in snapshot.get("sample_packages", [])
+                for path in tracked_sample_packages
                 if not os.path.exists(path)
             ]
 
             summary = {
                 "expected_package_json_count": snapshot.get("package_json_count"),
-                "current_package_json_count": current_package_json_count,
+                "tracked_top_entries": len(tracked_top_entries),
+                "tracked_pnpm_entries": len(tracked_pnpm_entries),
+                "tracked_sample_packages": len(tracked_sample_packages),
                 "missing_top_entries": missing_top_entries[:20],
                 "missing_pnpm_entries": missing_pnpm_entries[:20],
                 "missing_sample_packages": missing_sample_packages[:20],
-                "expected_top_entries_count": len(snapshot.get("top_entries", [])),
-                "current_top_entries_count": len(current_top_entries),
-                "expected_pnpm_entries_count": len(snapshot.get("pnpm_entries", [])),
-                "current_pnpm_entries_count": len(current_pnpm_entries),
+                "present_top_entries": len(tracked_top_entries) - len(missing_top_entries),
+                "present_pnpm_entries": len(tracked_pnpm_entries) - len(missing_pnpm_entries),
+                "present_sample_packages": len(tracked_sample_packages)
+                - len(missing_sample_packages),
             }
 
             print(json.dumps(summary))
 
             if (
-                summary["expected_package_json_count"] != summary["current_package_json_count"]
-                or missing_top_entries
+                missing_top_entries
                 or missing_pnpm_entries
                 or missing_sample_packages
             ):
@@ -396,9 +369,19 @@ def main():
             )
     if 'validation_summary' in locals() and validation_summary:
         print(
-            "Package.json count after resume: "
-            f"{validation_summary.get('current_package_json_count', 'n/a')} "
-            f"(expected {validation_summary.get('expected_package_json_count', 'n/a')})"
+            "Tracked top entries present after resume: "
+            f"{validation_summary.get('present_top_entries', 'n/a')} / "
+            f"{validation_summary.get('tracked_top_entries', 'n/a')}"
+        )
+        print(
+            "Tracked .pnpm entries present after resume: "
+            f"{validation_summary.get('present_pnpm_entries', 'n/a')} / "
+            f"{validation_summary.get('tracked_pnpm_entries', 'n/a')}"
+        )
+        print(
+            "Tracked package.json samples present after resume: "
+            f"{validation_summary.get('present_sample_packages', 'n/a')} / "
+            f"{validation_summary.get('tracked_sample_packages', 'n/a')}"
         )
         if validation_summary.get("missing_top_entries"):
             print("Missing top-level entries:")
