@@ -285,33 +285,28 @@ JSON
                 )
                 sys.exit(result.returncode or 1)
 
-            def read_lines(path: str) -> list[str]:
-                lines: list[str] = []
-                with open(path, "r", encoding="utf-8") as fh:
-                    for raw in fh:
-                        lines.append(raw.rstrip("\n"))
-                return lines
-
-            expected_lines = read_lines(expected_manifest_path)
             current_manifest_path = "node_modules_manifest_after.txt"
-            current_lines = read_lines(current_manifest_path)
 
-            expected_set = set(expected_lines)
-            current_set = set(current_lines)
+            expected_set: set[str] = set()
+            with open(expected_manifest_path, "r", encoding="utf-8") as fh:
+                for raw in fh:
+                    expected_set.add(raw.rstrip("\n"))
 
-            def compute_stats(lines: list[str]) -> dict[str, int]:
-                stats = {"files": 0, "directories": 0, "symlinks": 0}
-                for line in lines:
+            current_set: set[str] = set()
+            current_stats = {"files": 0, "directories": 0, "symlinks": 0}
+            with open(current_manifest_path, "r", encoding="utf-8") as fh:
+                for raw in fh:
+                    line = raw.rstrip("\n")
+                    current_set.add(line)
                     if not line:
                         continue
                     prefix = line.split("\t", 1)[0]
                     if prefix == "F":
-                        stats["files"] += 1
+                        current_stats["files"] += 1
                     elif prefix == "D":
-                        stats["directories"] += 1
+                        current_stats["directories"] += 1
                     elif prefix == "L":
-                        stats["symlinks"] += 1
-                return stats
+                        current_stats["symlinks"] += 1
 
             def sha256_file(path: str) -> str:
                 digest = hashlib.sha256()
@@ -333,7 +328,7 @@ JSON
                 "missing_preview": missing,
                 "extra_preview": extra,
                 "expected_stats": manifest.get("stats"),
-                "current_stats": compute_stats(current_lines),
+                "current_stats": current_stats,
             }
 
             print(json.dumps(summary))
