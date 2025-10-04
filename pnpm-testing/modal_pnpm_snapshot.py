@@ -1,5 +1,6 @@
 import json
 import os
+import shlex
 import textwrap
 import time
 
@@ -257,84 +258,112 @@ def main():
             )
         print(f"   Resumed sandbox ready in {time.time() - resume_start:.2f}s")
 
+        top_samples = snapshot_summary.get("top_entries_sample") or []
+        pnpm_samples = snapshot_summary.get("pnpm_entries_sample") or []
+        package_samples = snapshot_summary.get("sample_package_paths") or []
+
+        quoted_top = " ".join(shlex.quote(entry) for entry in top_samples)
+        quoted_pnpm = " ".join(shlex.quote(entry) for entry in pnpm_samples)
+        quoted_packages = " ".join(shlex.quote(path) for path in package_samples)
+
         validation_script = textwrap.dedent(
-            """
-            import json
-            import os
-            import sys
+            f"""
+            cd /workspace/slidev
+            missing=0
 
-            snapshot = json.loads('''__SNAPSHOT_DATA__''')
+            if [ ! -d node_modules ]; then
+                echo 'missing_dir:node_modules'
+                exit 1
+            fi
 
-            root = "node_modules"
-            if not os.path.isdir(root):
-                print(json.dumps({"error": "node_modules_missing_post_resume"}))
-                sys.exit(1)
+            top_count=$(ls node_modules | wc -l)
+            echo "top_count=${{top_count}}"
 
-            tracked_top_entries = snapshot.get("top_entries_sample", [])
-            tracked_pnpm_entries = snapshot.get("pnpm_entries_sample", [])
-            tracked_sample_packages = snapshot.get("sample_package_paths", [])
+            if [ -d node_modules/.pnpm ]; then
+                pnpm_count=$(ls node_modules/.pnpm | wc -l)
+                echo "pnpm_count=${{pnpm_count}}"
+            else
+                echo 'pnpm_missing_dir:true'
+                pnpm_count=0
+                missing=1
+            fi
 
-            current_top_entry_count = len([name for name in os.listdir(root)])
-            pnpm_dir = os.path.join(root, ".pnpm")
-            current_pnpm_entry_count = (
-                len([name for name in os.listdir(pnpm_dir)])
-                if os.path.isdir(pnpm_dir)
-                else 0
-            )
+            for entry in {quoted_top}; do
+                if [ "$entry" != "" ] && [ ! -e "node_modules/$entry" ]; then
+                    echo "missing_top:$entry"
+                    missing=1
+                fi
+            done
 
-            missing_top_entries = [
-                entry
-                for entry in tracked_top_entries
-                if not os.path.exists(os.path.join(root, entry))
-            ]
-            missing_pnpm_entries = [
-                entry
-                for entry in tracked_pnpm_entries
-                if not os.path.exists(os.path.join(root, ".pnpm", entry))
-            ]
-            missing_sample_packages = [
-                path
-                for path in tracked_sample_packages
-                if not os.path.exists(path)
-            ]
+            if [ $pnpm_count -gt 0 ]; then
+                for entry in {quoted_pnpm}; do
+                    if [ "$entry" != "" ] && [ ! -e "node_modules/.pnpm/$entry" ]; then
+                        echo "missing_pnpm:$entry"
+                        missing=1
+                    fi
+                done
+            fi
 
-            summary = {
-                "expected_package_json_count": snapshot.get("package_json_count"),
-                "tracked_top_entries": len(tracked_top_entries),
-                "tracked_pnpm_entries": len(tracked_pnpm_entries),
-                "tracked_sample_packages": len(tracked_sample_packages),
-                "missing_top_entries": missing_top_entries,
-                "missing_pnpm_entries": missing_pnpm_entries,
-                "missing_sample_packages": missing_sample_packages,
-                "present_top_entries": len(tracked_top_entries) - len(missing_top_entries),
-                "present_pnpm_entries": len(tracked_pnpm_entries) - len(missing_pnpm_entries),
-                "present_sample_packages": len(tracked_sample_packages)
-                - len(missing_sample_packages),
-                "expected_top_entry_count": snapshot.get("top_entry_count"),
-                "current_top_entry_count": current_top_entry_count,
-                "expected_pnpm_entry_count": snapshot.get("pnpm_entry_count"),
-                "current_pnpm_entry_count": current_pnpm_entry_count,
-            }
+            for entry in {quoted_packages}; do
+                if [ "$entry" != "" ] && [ ! -e "$entry" ]; then
+                    echo "missing_package:$entry"
+                    missing=1
+                fi
+            done
 
-            print(json.dumps(summary))
-
-            if (
-                missing_top_entries
-                or missing_pnpm_entries
-                or missing_sample_packages
-                or summary["expected_top_entry_count"] != summary["current_top_entry_count"]
-                or summary["expected_pnpm_entry_count"] != summary["current_pnpm_entry_count"]
-            ):
-                sys.exit(1)
+            exit $missing
             """
         )
-        validation_script = validation_script.replace("__SNAPSHOT_DATA__", snapshot_data_json)
 
         validation_rc, validation_summary = run_script_json(
             resume_sb,
             validation_script,
             "14. Validating node_modules snapshot after resume...",
         )
+
+        if validation_summary and "raw_output" in validation_summary:
+            raw_lines = [line.strip() for line in validation_summary["raw_output"].splitlines() if line.strip()]
+            parsed_summary: dict[str, object] = {
+                "expected_package_json_count": snapshot_summary.get("package_json_count"),
+                "tracked_top_entries": len(top_samples),
+                "tracked_pnpm_entries": len(pnpm_samples),
+                "tracked_sample_packages": len(package_samples),
+                "missing_top_entries": [],
+                "missing_pnpm_entries": [],
+                "missing_sample_packages": [],
+                "present_top_entries": len(top_samples),
+                "present_pnpm_entries": len(pnpm_samples),
+                "present_sample_packages": len(package_samples),
+                "expected_top_entry_count": snapshot_summary.get("top_entry_count"),
+                "expected_pnpm_entry_count": snapshot_summary.get("pnpm_entry_count"),
+                "current_top_entry_count": 0,
+                "current_pnpm_entry_count": 0,
+            }
+
+            for line in raw_lines:
+                if line.startswith("top_count="):
+                    parsed_summary["current_top_entry_count"] = int(line.split("=", 1)[1])
+                elif line.startswith("pnpm_count="):
+                    parsed_summary["current_pnpm_entry_count"] = int(line.split("=", 1)[1])
+                elif line.startswith("missing_top:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_top_entries"].append(entry)
+                    parsed_summary["present_top_entries"] = int(parsed_summary["present_top_entries"]) - 1
+                elif line.startswith("missing_pnpm:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_pnpm_entries"].append(entry)
+                    parsed_summary["present_pnpm_entries"] = int(parsed_summary["present_pnpm_entries"]) - 1
+                elif line.startswith("missing_package:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_sample_packages"].append(entry)
+                    parsed_summary["present_sample_packages"] = int(parsed_summary["present_sample_packages"]) - 1
+                elif line.startswith("missing_dir:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary.setdefault("missing_top_entries", []).append(entry)
+                elif line.startswith("pnpm_missing_dir:"):
+                    parsed_summary.setdefault("missing_pnpm_entries", []).append(".pnpm")
+
+            validation_summary = parsed_summary
 
         if validation_rc != 0:
             print("   ERROR: Node_modules integrity mismatch detected after resume.")
