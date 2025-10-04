@@ -132,54 +132,41 @@ def main():
 
     manifest_script = textwrap.dedent(
         """
-        import hashlib
-        import json
-        import os
+        set -euo pipefail
 
-        root = "node_modules"
-        entries: list[list[str]] = []
-        file_count = 0
-        dir_count = 0
-        symlink_count = 0
+        root="node_modules"
+        if [ ! -d "$root" ]; then
+            echo '{"error": "node_modules_missing"}'
+            exit 1
+        fi
 
-        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-            for name in dirnames + filenames:
-                full_path = os.path.join(dirpath, name)
-                rel_path = os.path.relpath(full_path, root)
-                if os.path.islink(full_path):
-                    entries.append(["L", rel_path, os.readlink(full_path)])
-                    symlink_count += 1
-                elif os.path.isdir(full_path):
-                    entries.append(["D", rel_path])
-                    dir_count += 1
-                else:
-                    entries.append(["F", rel_path])
-                    file_count += 1
+        manifest_txt="node_modules_manifest.txt"
+        temp_manifest="${manifest_txt}.tmp"
 
-        entries.sort()
+        {
+            find "$root" -mindepth 1 -type d -printf "D\\t%P\\n"
+            find "$root" -type f -printf "F\\t%P\\n"
+            find "$root" -type l -printf "L\\t%P\\t%l\\n"
+        } | LC_ALL=C sort > "$temp_manifest"
 
-        digest = hashlib.sha256()
-        for entry in entries:
-            digest.update("\0".join(entry).encode())
+        mv "$temp_manifest" "$manifest_txt"
 
-        manifest = {
-            "entries": entries,
-            "hash": digest.hexdigest(),
-            "stats": {
-                "files": file_count,
-                "directories": dir_count,
-                "symlinks": symlink_count,
-            },
-        }
+        stats=$(awk -F '\\t' 'BEGIN {total=0; files=0; dirs=0; links=0}
+            {total++}
+            $1=="F"{files++}
+            $1=="D"{dirs++}
+            $1=="L"{links++}
+            END {printf "%d %d %d %d", total, files, dirs, links}' "$manifest_txt")
 
-        with open("node_modules_manifest.json", "w", encoding="utf-8") as fh:
-            json.dump(manifest, fh)
+        IFS=' ' read -r entry_count files directories symlinks <<< "$stats"
 
-        print(json.dumps({
-            "entry_count": len(entries),
-            "hash": manifest["hash"],
-            "stats": manifest["stats"],
-        }))
+        hash=$(sha256sum "$manifest_txt" | awk '{print $1}')
+
+        cat <<JSON > node_modules_manifest.json
+{"manifest_path": "$manifest_txt", "hash": "$hash", "entry_count": $entry_count, "stats": {"files": $files, "directories": $directories, "symlinks": $symlinks}}
+JSON
+
+        cat node_modules_manifest.json
         """
     )
 
@@ -234,73 +221,115 @@ def main():
             import hashlib
             import json
             import os
+            import subprocess
             import sys
 
-            root = "node_modules"
-            manifest_path = "node_modules_manifest.json"
-
-            if not os.path.exists(manifest_path):
+            meta_path = "node_modules_manifest.json"
+            if not os.path.exists(meta_path):
                 print(json.dumps({"error": "manifest_missing"}))
                 sys.exit(1)
 
-            with open(manifest_path, "r", encoding="utf-8") as fh:
+            with open(meta_path, "r", encoding="utf-8") as fh:
                 manifest = json.load(fh)
 
-            expected_entries = [tuple(entry) for entry in manifest.get("entries", [])]
-            expected_set = set(expected_entries)
+            expected_manifest_path = manifest.get("manifest_path", "node_modules_manifest.txt")
+            if not os.path.exists(expected_manifest_path):
+                print(
+                    json.dumps(
+                        {
+                            "error": "manifest_file_missing",
+                            "manifest_path": expected_manifest_path,
+                        }
+                    )
+                )
+                sys.exit(1)
 
-            current_entries = []
-            file_count = 0
-            dir_count = 0
-            symlink_count = 0
+            regen_script = """
+            set -euo pipefail
+            root="node_modules"
+            manifest_txt="node_modules_manifest_after.txt"
+            temp_manifest="${manifest_txt}.tmp"
+            {
+                find \"$root\" -mindepth 1 -type d -printf \"D\\t%P\\n\"
+                find \"$root\" -type f -printf \"F\\t%P\\n\"
+                find \"$root\" -type l -printf \"L\\t%P\\t%l\\n\"
+            } | LC_ALL=C sort > \"$temp_manifest\"
+            mv \"$temp_manifest\" \"$manifest_txt\"
+            """
 
-            for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-                for name in dirnames + filenames:
-                    full_path = os.path.join(dirpath, name)
-                    rel_path = os.path.relpath(full_path, root)
-                    if os.path.islink(full_path):
-                        entry = ("L", rel_path, os.readlink(full_path))
-                        symlink_count += 1
-                    elif os.path.isdir(full_path):
-                        entry = ("D", rel_path)
-                        dir_count += 1
-                    else:
-                        entry = ("F", rel_path)
-                        file_count += 1
-                    current_entries.append(entry)
+            result = subprocess.run(
+                ["bash", "-lc", regen_script], capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                print(
+                    json.dumps(
+                        {
+                            "error": "manifest_regen_failed",
+                            "returncode": result.returncode,
+                            "stdout": result.stdout.strip(),
+                            "stderr": result.stderr.strip(),
+                        }
+                    )
+                )
+                sys.exit(result.returncode or 1)
 
-            current_entries.sort()
-            current_set = set(current_entries)
+            def read_lines(path: str) -> list[str]:
+                lines: list[str] = []
+                with open(path, "r", encoding="utf-8") as fh:
+                    for raw in fh:
+                        lines.append(raw.rstrip("\n"))
+                return lines
 
-            digest = hashlib.sha256()
-            for entry in current_entries:
-                digest.update("\0".join(map(str, entry)).encode())
-            current_hash = digest.hexdigest()
+            expected_lines = read_lines(expected_manifest_path)
+            current_manifest_path = "node_modules_manifest_after.txt"
+            current_lines = read_lines(current_manifest_path)
 
-            missing_set = expected_set - current_set
-            extra_set = current_set - expected_set
+            expected_set = set(expected_lines)
+            current_set = set(current_lines)
+
+            def compute_stats(lines: list[str]) -> dict[str, int]:
+                stats = {"files": 0, "directories": 0, "symlinks": 0}
+                for line in lines:
+                    if not line:
+                        continue
+                    prefix = line.split("\t", 1)[0]
+                    if prefix == "F":
+                        stats["files"] += 1
+                    elif prefix == "D":
+                        stats["directories"] += 1
+                    elif prefix == "L":
+                        stats["symlinks"] += 1
+                return stats
+
+            def sha256_file(path: str) -> str:
+                digest = hashlib.sha256()
+                with open(path, "rb") as fh:
+                    for chunk in iter(lambda: fh.read(65536), b""):
+                        digest.update(chunk)
+                return digest.hexdigest()
+
+            missing = sorted(expected_set - current_set)[:20]
+            extra = sorted(current_set - expected_set)[:20]
 
             summary = {
                 "expected_count": len(expected_set),
                 "current_count": len(current_set),
                 "expected_hash": manifest.get("hash"),
-                "current_hash": current_hash,
-                "missing_count": len(missing_set),
-                "extra_count": len(extra_set),
-                "missing_preview": sorted(missing_set, key=lambda x: x[1])[:20],
-                "extra_preview": sorted(extra_set, key=lambda x: x[1])[:20],
+                "current_hash": sha256_file(current_manifest_path),
+                "missing_count": len(expected_set - current_set),
+                "extra_count": len(current_set - expected_set),
+                "missing_preview": missing,
+                "extra_preview": extra,
                 "expected_stats": manifest.get("stats"),
-                "current_stats": {
-                    "files": file_count,
-                    "directories": dir_count,
-                    "symlinks": symlink_count,
-                },
+                "current_stats": compute_stats(current_lines),
             }
 
             print(json.dumps(summary))
 
-            if missing_set or extra_set or (
-                manifest.get("hash") and manifest["hash"] != current_hash
+            if (
+                summary["missing_count"]
+                or summary["extra_count"]
+                or (manifest.get("hash") and manifest["hash"] != summary["current_hash"])
             ):
                 sys.exit(1)
             """
