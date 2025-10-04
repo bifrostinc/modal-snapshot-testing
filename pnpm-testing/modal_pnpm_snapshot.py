@@ -176,7 +176,7 @@ def main():
                 "find node_modules -name package.json -type f | wc -l"
             ),
             "top_entries": capture_lines(
-                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
+                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 25"
             ),
             "sample_packages": capture_lines(
                 "find node_modules -maxdepth 2 -name package.json -type f | LC_ALL=C sort | head -n 100"
@@ -186,7 +186,7 @@ def main():
         pnpm_dir = os.path.join(root, ".pnpm")
         if os.path.isdir(pnpm_dir):
             data["pnpm_entries"] = capture_lines(
-                "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
+                "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 25"
             )
         else:
             data["pnpm_entries"] = []
