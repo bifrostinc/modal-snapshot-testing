@@ -249,7 +249,9 @@ def main():
         resume_start = time.time()
         with modal.enable_output():
             resume_sb = modal.Sandbox.create(
-                "/start-dockerd.sh",
+                "bash",
+                "-lc",
+                "sleep infinity",
                 timeout=60 * 60,
                 app=app,
                 image=image,
