@@ -192,8 +192,18 @@ def main():
     if manifest_rc != 0:
         print("   ERROR: Failed to record node_modules manifest.")
 
+    # Check python availability to aid debugging when manifests fail to generate
+    print("\n10. Checking python3 availability inside sandbox...")
+    p = sb.exec("python3", "--version")
+    python_version = p.stdout.read().strip()
+    p.wait()
+    if python_version:
+        print(f"   python3 reports: {python_version}")
+    if p.returncode != 0:
+        print(f"   WARNING: python3 --version returned {p.returncode}")
+
     # Attempt to create a snapshot
-    print("\n10. Attempting to create filesystem snapshot (simulated suspend)...")
+    print("\n11. Attempting to create filesystem snapshot (simulated suspend)...")
     snapshot_start = time.time()
 
     resume_sb = None
@@ -203,11 +213,11 @@ def main():
         print(f"   SUCCESS: Snapshot created in {snapshot_duration:.2f}s")
         print(f"   Snapshot image: {image}")
 
-        print("\n11. Terminating original sandbox before resume...")
+        print("\n12. Terminating original sandbox before resume...")
         sb.terminate()
         print("    Original sandbox terminated")
 
-        print("\n12. Creating resumed sandbox from snapshot image...")
+        print("\n13. Creating resumed sandbox from snapshot image...")
         resume_start = time.time()
         with modal.enable_output():
             resume_sb = modal.Sandbox.create(
@@ -299,7 +309,7 @@ def main():
         validation_rc, validation_summary = run_python_json(
             resume_sb,
             validation_script,
-            "13. Validating node_modules manifest after resume...",
+            "14. Validating node_modules manifest after resume...",
         )
 
         if validation_rc != 0:
@@ -313,7 +323,7 @@ def main():
         validation_rc = -1
     finally:
         if resume_sb is not None:
-            print("\n14. Terminating resumed sandbox...")
+            print("\n15. Terminating resumed sandbox...")
             resume_sb.terminate()
             print("    Resumed sandbox terminated")
 
