@@ -211,7 +211,6 @@ def main():
         sb,
         snapshot_script,
         "9. Recording node_modules snapshot before suspend...",
-        interpreter="bash",
     )
 
     if snapshot_rc != 0:
