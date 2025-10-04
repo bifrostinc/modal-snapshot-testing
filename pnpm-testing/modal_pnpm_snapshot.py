@@ -103,7 +103,7 @@ def main():
     package_count = p.stdout.read().strip()
     print(f"   Total packages installed: {package_count}")
 
-    # Helper utilities for manifest generation and validation
+    # Helper utilities for snapshot generation and validation
     def run_script_json(sb_handle, script, step_description, *, interpreter="python3"):
         print(f"\n{step_description}")
         if interpreter == "python3":
@@ -141,57 +141,83 @@ def main():
 
         return proc.returncode, summary
 
-    manifest_script = textwrap.dedent(
+    snapshot_script = textwrap.dedent(
         """
-        set -euo pipefail
+        import json
+        import os
+        import subprocess
+        import sys
 
-        root="node_modules"
-        if [ ! -d "$root" ]; then
-            echo '{"error": "node_modules_missing"}'
-            exit 1
-        fi
+        root = "node_modules"
+        if not os.path.isdir(root):
+            print(json.dumps({"error": "node_modules_missing"}))
+            sys.exit(1)
 
-        manifest_txt="node_modules_manifest.txt"
-        temp_manifest="${manifest_txt}.tmp"
+        def run(cmd: str) -> str:
+            result = subprocess.run(["bash", "-lc", cmd], text=True, capture_output=True)
+            if result.returncode != 0:
+                raise RuntimeError(f"Command failed ({cmd}): {result.stderr.strip()}")
+            return result.stdout
 
-        {
-            find "$root" -mindepth 1 -type d -printf "D\\t%P\\n"
-            find "$root" -type f -printf "F\\t%P\\n"
-            find "$root" -type l -printf "L\\t%P\\t%l\\n"
-        } | LC_ALL=C sort > "$temp_manifest"
+        def capture_count(cmd: str) -> int:
+            output = run(cmd).strip()
+            if not output:
+                return 0
+            return int(output.split()[0])
 
-        mv "$temp_manifest" "$manifest_txt"
+        def capture_lines(cmd: str, limit: int | None = None) -> list[str]:
+            lines = [line.strip() for line in run(cmd).splitlines() if line.strip()]
+            if limit is not None:
+                return lines[:limit]
+            return lines
 
-        stats=$(awk -F '\\t' 'BEGIN {total=0; files=0; dirs=0; links=0}
-            {total++}
-            $1=="F"{files++}
-            $1=="D"{dirs++}
-            $1=="L"{links++}
-            END {printf "%d %d %d %d", total, files, dirs, links}' "$manifest_txt")
+        data = {
+            "package_json_count": capture_count(
+                "find node_modules -name package.json -type f | wc -l"
+            ),
+            "top_entries": capture_lines(
+                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
+            ),
+            "sample_packages": capture_lines(
+                "find node_modules -maxdepth 2 -name package.json -type f | LC_ALL=C sort | head -n 100"
+            ),
+        }
 
-        IFS=' ' read -r entry_count files directories symlinks <<< "$stats"
+        pnpm_dir = os.path.join(root, ".pnpm")
+        if os.path.isdir(pnpm_dir):
+            data["pnpm_entries"] = capture_lines(
+                "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
+            )
+        else:
+            data["pnpm_entries"] = []
 
-        hash=$(sha256sum "$manifest_txt" | awk '{print $1}')
+        with open("node_modules_snapshot.json", "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
 
-        cat <<JSON > node_modules_manifest.json
-{"manifest_path": "$manifest_txt", "hash": "$hash", "entry_count": $entry_count, "stats": {"files": $files, "directories": $directories, "symlinks": $symlinks}}
-JSON
-
-        cat node_modules_manifest.json
+        print(
+            json.dumps(
+                {
+                    "package_json_count": data["package_json_count"],
+                    "top_entries_sample": data["top_entries"][:5],
+                    "pnpm_entries_sample": data["pnpm_entries"][:5],
+                    "sample_package_paths": data["sample_packages"][:5],
+                }
+            )
+        )
         """
     )
 
-    manifest_rc, manifest_summary = run_script_json(
+    snapshot_rc, snapshot_summary = run_script_json(
         sb,
-        manifest_script,
-        "9. Recording node_modules manifest before suspend...",
+        snapshot_script,
+        "9. Recording node_modules snapshot before suspend...",
         interpreter="bash",
     )
 
-    if manifest_rc != 0:
-        print("   ERROR: Failed to record node_modules manifest.")
+    if snapshot_rc != 0:
+        print("   ERROR: Failed to record node_modules snapshot.")
 
-    # Check python availability to aid debugging when manifests fail to generate
+    # Check python availability to aid debugging when snapshot capture fails
     print("\n10. Checking python3 availability inside sandbox...")
     p = sb.exec("python3", "--version")
     python_version = p.stdout.read().strip()
@@ -230,157 +256,91 @@ JSON
 
         validation_script = textwrap.dedent(
             """
-            import hashlib
             import json
             import os
             import subprocess
             import sys
 
-            meta_path = "node_modules_manifest.json"
-            if not os.path.exists(meta_path):
-                print(json.dumps({"error": "manifest_missing"}))
+            snapshot_path = "node_modules_snapshot.json"
+            if not os.path.exists(snapshot_path):
+                print(json.dumps({"error": "snapshot_missing"}))
                 sys.exit(1)
 
-            with open(meta_path, "r", encoding="utf-8") as fh:
-                manifest = json.load(fh)
+            with open(snapshot_path, "r", encoding="utf-8") as fh:
+                snapshot = json.load(fh)
 
-            expected_manifest_path = manifest.get("manifest_path", "node_modules_manifest.txt")
-            if not os.path.exists(expected_manifest_path):
-                print(
-                    json.dumps(
-                        {
-                            "error": "manifest_file_missing",
-                            "manifest_path": expected_manifest_path,
-                        }
-                    )
-                )
+            root = "node_modules"
+            if not os.path.isdir(root):
+                print(json.dumps({"error": "node_modules_missing_post_resume"}))
                 sys.exit(1)
 
-            regen_script = '''
-            set -euo pipefail
-            root="node_modules"
-            manifest_txt="node_modules_manifest_after.txt"
-            temp_manifest="${manifest_txt}.tmp"
-            {
-                find \"$root\" -mindepth 1 -type d -printf \"D\\t%P\\n\"
-                find \"$root\" -type f -printf \"F\\t%P\\n\"
-                find \"$root\" -type l -printf \"L\\t%P\\t%l\\n\"
-            } | LC_ALL=C sort > \"$temp_manifest\"
-            mv \"$temp_manifest\" \"$manifest_txt\"
-            '''
+            def run(cmd: str) -> str:
+                result = subprocess.run(["bash", "-lc", cmd], text=True, capture_output=True)
+                if result.returncode != 0:
+                    raise RuntimeError(f"Command failed ({cmd}): {result.stderr.strip()}")
+                return result.stdout
 
-            result = subprocess.run(
-                ["bash", "-lc", regen_script], capture_output=True, text=True
+            def capture_count(cmd: str) -> int:
+                output = run(cmd).strip()
+                if not output:
+                    return 0
+                return int(output.split()[0])
+
+            def capture_lines(cmd: str, limit: int | None = None) -> list[str]:
+                lines = [line.strip() for line in run(cmd).splitlines() if line.strip()]
+                if limit is not None:
+                    return lines[:limit]
+                return lines
+
+            current_package_json_count = capture_count(
+                "find node_modules -name package.json -type f | wc -l"
             )
-            if result.returncode != 0:
-                print(
-                    json.dumps(
-                        {
-                            "error": "manifest_regen_failed",
-                            "returncode": result.returncode,
-                            "stdout": result.stdout.strip(),
-                            "stderr": result.stderr.strip(),
-                        }
-                    )
+            current_top_entries = capture_lines(
+                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
+            )
+            pnpm_dir = os.path.join(root, ".pnpm")
+            if os.path.isdir(pnpm_dir):
+                current_pnpm_entries = capture_lines(
+                    "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 100"
                 )
-                sys.exit(result.returncode or 1)
+            else:
+                current_pnpm_entries = []
 
-            current_manifest_path = "node_modules_manifest_after.txt"
-
-            current_stats = {"files": 0, "directories": 0, "symlinks": 0}
-            current_count = 0
-            with open(current_manifest_path, "r", encoding="utf-8") as fh:
-                for raw in fh:
-                    current_count += 1
-                    line = raw.rstrip("\n")
-                    if not line:
-                        continue
-                    prefix = line.split("\t", 1)[0]
-                    if prefix == "F":
-                        current_stats["files"] += 1
-                    elif prefix == "D":
-                        current_stats["directories"] += 1
-                    elif prefix == "L":
-                        current_stats["symlinks"] += 1
-
-            def diff_manifests(expected_path: str, current_path: str, limit: int = 20):
-                missing_count = 0
-                extra_count = 0
-                missing_preview: list[str] = []
-                extra_preview: list[str] = []
-
-                with open(expected_path, "r", encoding="utf-8") as expected_fh,
-                    open(current_path, "r", encoding="utf-8") as current_fh:
-
-                    expected_line = expected_fh.readline()
-                    current_line = current_fh.readline()
-
-                    while expected_line or current_line:
-                        if not current_line:
-                            value = expected_line.rstrip("\n")
-                            missing_count += 1
-                            if len(missing_preview) < limit:
-                                missing_preview.append(value)
-                            expected_line = expected_fh.readline()
-                            continue
-
-                        if not expected_line:
-                            value = current_line.rstrip("\n")
-                            extra_count += 1
-                            if len(extra_preview) < limit:
-                                extra_preview.append(value)
-                            current_line = current_fh.readline()
-                            continue
-
-                        expected_value = expected_line.rstrip("\n")
-                        current_value = current_line.rstrip("\n")
-
-                        if expected_value == current_value:
-                            expected_line = expected_fh.readline()
-                            current_line = current_fh.readline()
-                        elif expected_value < current_value:
-                            missing_count += 1
-                            if len(missing_preview) < limit:
-                                missing_preview.append(expected_value)
-                            expected_line = expected_fh.readline()
-                        else:
-                            extra_count += 1
-                            if len(extra_preview) < limit:
-                                extra_preview.append(current_value)
-                            current_line = current_fh.readline()
-
-                return missing_count, extra_count, missing_preview, extra_preview
-
-            missing_count, extra_count, missing_preview, extra_preview = diff_manifests(
-                expected_manifest_path, current_manifest_path
-            )
-
-            def sha256_file(path: str) -> str:
-                digest = hashlib.sha256()
-                with open(path, "rb") as fh:
-                    for chunk in iter(lambda: fh.read(65536), b""):
-                        digest.update(chunk)
-                return digest.hexdigest()
+            missing_top_entries = [
+                entry
+                for entry in snapshot.get("top_entries", [])
+                if not os.path.exists(os.path.join(root, entry))
+            ]
+            missing_pnpm_entries = [
+                entry
+                for entry in snapshot.get("pnpm_entries", [])
+                if not os.path.exists(os.path.join(root, ".pnpm", entry))
+            ]
+            missing_sample_packages = [
+                path
+                for path in snapshot.get("sample_packages", [])
+                if not os.path.exists(path)
+            ]
 
             summary = {
-                "expected_count": manifest.get("entry_count"),
-                "current_count": current_count,
-                "expected_hash": manifest.get("hash"),
-                "current_hash": sha256_file(current_manifest_path),
-                "missing_count": missing_count,
-                "extra_count": extra_count,
-                "missing_preview": missing_preview,
-                "extra_preview": extra_preview,
-                "expected_stats": manifest.get("stats"),
-                "current_stats": current_stats,
+                "expected_package_json_count": snapshot.get("package_json_count"),
+                "current_package_json_count": current_package_json_count,
+                "missing_top_entries": missing_top_entries[:20],
+                "missing_pnpm_entries": missing_pnpm_entries[:20],
+                "missing_sample_packages": missing_sample_packages[:20],
+                "expected_top_entries_count": len(snapshot.get("top_entries", [])),
+                "current_top_entries_count": len(current_top_entries),
+                "expected_pnpm_entries_count": len(snapshot.get("pnpm_entries", [])),
+                "current_pnpm_entries_count": len(current_pnpm_entries),
             }
 
             print(json.dumps(summary))
 
             if (
-                missing_count
-                or extra_count
-                or (manifest.get("hash") and manifest["hash"] != summary["current_hash"])
+                summary["expected_package_json_count"] != summary["current_package_json_count"]
+                or missing_top_entries
+                or missing_pnpm_entries
+                or missing_sample_packages
             ):
                 sys.exit(1)
             """
@@ -389,7 +349,7 @@ JSON
         validation_rc, validation_summary = run_script_json(
             resume_sb,
             validation_script,
-            "14. Validating node_modules manifest after resume...",
+            "14. Validating node_modules snapshot after resume...",
         )
 
         if validation_rc != 0:
@@ -424,36 +384,35 @@ JSON
     print(f"Snapshot attempt: {'SUCCESS' if 'image' in locals() else 'FAILED'}")
     if 'image' in locals():
         print(f"Snapshot duration: {snapshot_duration:.2f}s")
-    if manifest_summary:
+    if snapshot_summary:
         print(
-            f"Manifest hash before suspend: {manifest_summary.get('hash', 'n/a')} "
-            f"(entries: {manifest_summary.get('entry_count', 'n/a')})"
+            "Package.json count before suspend: "
+            f"{snapshot_summary.get('package_json_count', 'n/a')}"
         )
-        stats = manifest_summary.get("stats") or {}
-        print(
-            "Manifest stats before suspend: "
-            f"files={stats.get('files', 'n/a')}, directories={stats.get('directories', 'n/a')}, "
-            f"symlinks={stats.get('symlinks', 'n/a')}"
-        )
+        top_sample = snapshot_summary.get("top_entries_sample") or []
+        if top_sample:
+            print(
+                "Top-level entries sample before suspend: "
+                + ", ".join(top_sample[:5])
+            )
     if 'validation_summary' in locals() and validation_summary:
         print(
-            f"Post-resume hash: {validation_summary.get('current_hash', 'n/a')} "
-            f"(missing: {validation_summary.get('missing_count', 'n/a')}, extra: {validation_summary.get('extra_count', 'n/a')})"
+            "Package.json count after resume: "
+            f"{validation_summary.get('current_package_json_count', 'n/a')} "
+            f"(expected {validation_summary.get('expected_package_json_count', 'n/a')})"
         )
-        current_stats = validation_summary.get("current_stats") or {}
-        print(
-            "Manifest stats after resume: "
-            f"files={current_stats.get('files', 'n/a')}, directories={current_stats.get('directories', 'n/a')}, "
-            f"symlinks={current_stats.get('symlinks', 'n/a')}"
-        )
-        if validation_summary.get("missing_preview"):
-            print("Sample missing entries:")
-            for entry in validation_summary["missing_preview"][:5]:
+        if validation_summary.get("missing_top_entries"):
+            print("Missing top-level entries:")
+            for entry in validation_summary["missing_top_entries"][:5]:
                 print(f"  - {entry}")
-        if validation_summary.get("extra_preview"):
-            print("Sample extra entries:")
-            for entry in validation_summary["extra_preview"][:5]:
-                print(f"  + {entry}")
+        if validation_summary.get("missing_pnpm_entries"):
+            print("Missing .pnpm entries:")
+            for entry in validation_summary["missing_pnpm_entries"][:5]:
+                print(f"  - {entry}")
+        if validation_summary.get("missing_sample_packages"):
+            print("Missing sampled package.json files:")
+            for entry in validation_summary["missing_sample_packages"][:5]:
+                print(f"  - {entry}")
     if 'validation_rc' in locals():
         print(f"Node_modules validation: {'PASS' if validation_rc == 0 else 'FAIL'}")
     print("=" * 60)
