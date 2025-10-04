@@ -215,6 +215,7 @@ def main():
 
     if snapshot_rc != 0:
         print("   ERROR: Failed to record node_modules snapshot.")
+    snapshot_data_json = json.dumps(snapshot_summary or {})
 
     # Check python availability to aid debugging when snapshot capture fails
     print("\n10. Checking python3 availability inside sandbox...")
@@ -257,25 +258,18 @@ def main():
             """
             import json
             import os
-            import subprocess
             import sys
 
-            snapshot_path = "node_modules_snapshot.json"
-            if not os.path.exists(snapshot_path):
-                print(json.dumps({"error": "snapshot_missing"}))
-                sys.exit(1)
-
-            with open(snapshot_path, "r", encoding="utf-8") as fh:
-                snapshot = json.load(fh)
+            snapshot = json.loads('''__SNAPSHOT_DATA__''')
 
             root = "node_modules"
             if not os.path.isdir(root):
                 print(json.dumps({"error": "node_modules_missing_post_resume"}))
                 sys.exit(1)
 
-            tracked_top_entries = snapshot.get("top_entries", [])
-            tracked_pnpm_entries = snapshot.get("pnpm_entries", [])
-            tracked_sample_packages = snapshot.get("sample_packages", [])
+            tracked_top_entries = snapshot.get("top_entries_sample", [])
+            tracked_pnpm_entries = snapshot.get("pnpm_entries_sample", [])
+            tracked_sample_packages = snapshot.get("sample_package_paths", [])
 
             missing_top_entries = [
                 entry
@@ -298,9 +292,9 @@ def main():
                 "tracked_top_entries": len(tracked_top_entries),
                 "tracked_pnpm_entries": len(tracked_pnpm_entries),
                 "tracked_sample_packages": len(tracked_sample_packages),
-                "missing_top_entries": missing_top_entries[:20],
-                "missing_pnpm_entries": missing_pnpm_entries[:20],
-                "missing_sample_packages": missing_sample_packages[:20],
+                "missing_top_entries": missing_top_entries,
+                "missing_pnpm_entries": missing_pnpm_entries,
+                "missing_sample_packages": missing_sample_packages,
                 "present_top_entries": len(tracked_top_entries) - len(missing_top_entries),
                 "present_pnpm_entries": len(tracked_pnpm_entries) - len(missing_pnpm_entries),
                 "present_sample_packages": len(tracked_sample_packages)
@@ -317,6 +311,7 @@ def main():
                 sys.exit(1)
             """
         )
+        validation_script = validation_script.replace("__SNAPSHOT_DATA__", snapshot_data_json)
 
         validation_rc, validation_summary = run_script_json(
             resume_sb,
