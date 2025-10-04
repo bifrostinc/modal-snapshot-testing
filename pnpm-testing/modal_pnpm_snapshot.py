@@ -244,7 +244,7 @@ JSON
                 )
                 sys.exit(1)
 
-            regen_script = """
+            regen_script = '''
             set -euo pipefail
             root="node_modules"
             manifest_txt="node_modules_manifest_after.txt"
@@ -255,7 +255,7 @@ JSON
                 find \"$root\" -type l -printf \"L\\t%P\\t%l\\n\"
             } | LC_ALL=C sort > \"$temp_manifest\"
             mv \"$temp_manifest\" \"$manifest_txt\"
-            """
+            '''
 
             result = subprocess.run(
                 ["bash", "-lc", regen_script], capture_output=True, text=True
