@@ -219,7 +219,6 @@ def main():
 
     if snapshot_rc != 0:
         print("   ERROR: Failed to record node_modules snapshot.")
-    snapshot_data_json = json.dumps(snapshot_summary or {})
 
     # Check python availability to aid debugging when snapshot capture fails
     print("\n10. Checking python3 availability inside sandbox...")
@@ -319,6 +318,7 @@ def main():
             resume_sb,
             validation_script,
             "14. Validating node_modules snapshot after resume...",
+            interpreter="bash",
         )
 
         if validation_summary and "raw_output" in validation_summary:
