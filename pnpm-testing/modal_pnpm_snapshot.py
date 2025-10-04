@@ -371,6 +371,25 @@ def main():
 
         if validation_rc != 0:
             print("   ERROR: Node_modules integrity mismatch detected after resume.")
+
+        print("\n14b. Attempting pnpm install --offline inside resumed sandbox...")
+        offline_cmd = "cd /workspace/slidev && pnpm install --offline"
+        offline_proc = resume_sb.exec("bash", "-lc", offline_cmd)
+        offline_stdout = [line.strip() for line in offline_proc.stdout]
+        offline_proc.wait()
+        offline_stderr = offline_proc.stderr.read().strip()
+
+        for line in offline_stdout[:20]:
+            print(f"   {line}")
+        if offline_stderr:
+            print(f"   stderr: {offline_stderr}")
+        if offline_proc.returncode != 0:
+            print(
+                "   pnpm install --offline FAILED (this indicates missing modules after resume)."
+            )
+            validation_rc = validation_rc if validation_rc != 0 else offline_proc.returncode
+        else:
+            print("   pnpm install --offline succeeded.")
     except Exception as e:
         snapshot_duration = time.time() - snapshot_start
         print(f"   FAILED: Snapshot or resume failed after {snapshot_duration:.2f}s")
