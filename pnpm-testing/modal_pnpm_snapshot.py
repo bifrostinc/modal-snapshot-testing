@@ -125,6 +125,9 @@ def main():
             except json.JSONDecodeError:
                 summary = {"raw_output": stdout_text.strip()}
 
+        if proc.returncode != 0:
+            print(f"   Command exited with code {proc.returncode}")
+
         return proc.returncode, summary
 
     manifest_script = textwrap.dedent(
