@@ -4,6 +4,10 @@
 
 When we take a filesystem snapshot of a sandbox that has just completed a `pnpm install`, resume from that snapshot, and attempt to run `pnpm install --offline`, the install now fails because key packages are missing from `node_modules`. This regression started after the recent suspend/resume fixes landed – the sandbox can resume, but pnpm’s workspace no longer contains every package payload that was present before the snapshot.
 
+## Impact
+
+During development we rely on snapshots to resume sandboxes quickly. Because the resumed environment is missing chunks of `node_modules`, we currently have to wipe `node_modules` on startup and run a fresh `pnpm install` every time. For large dependency graphs that adds minutes to each resume and removes most of the benefit of sandbox snapshots.
+
 ## Environment
 
 - **Modal**: Sandbox with `experimental_options.enable_docker_in_gvisor = true`
