@@ -44,6 +44,8 @@ WARN  Failed to create bin … node_modules/.pnpm/tsx@4.20.3/node_modules/esbu
 exit code: 1
 ```
 
+Full console output (including sandbox creation and the failing offline install) is stored in `pnpm-testing/logs/pnpm_offline_fail.log`.
+
 Because the offline install fails, the test script now exits non-zero and reports `Node_modules validation: FAIL`.
 
 ## Notes
