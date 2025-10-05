@@ -1,5 +1,9 @@
+import json
 import os
+import shlex
+import textwrap
 import time
+
 import modal
 
 # Use the 2025.06 Modal Image Builder
@@ -100,25 +104,310 @@ def main():
     package_count = p.stdout.read().strip()
     print(f"   Total packages installed: {package_count}")
 
+    # Helper utilities for snapshot generation and validation
+    def run_script_json(sb_handle, script, step_description, *, interpreter="python3"):
+        print(f"\n{step_description}")
+        if interpreter == "python3":
+            command = "cd /workspace/slidev && python3 - <<'PY'\n" + script + "\nPY\n"
+        elif interpreter == "bash":
+            command = "cd /workspace/slidev && bash <<'BASH'\n" + script + "\nBASH\n"
+        else:
+            command = (
+                "cd /workspace/slidev && "
+                + interpreter
+                + " <<'MODALSCRIPT'\n"
+                + script
+                + "\nMODALSCRIPT\n"
+            )
+        proc = sb_handle.exec("bash", "-lc", command, timeout=600)
+        stdout_text = proc.stdout.read()
+        proc.wait()
+        stderr_text = proc.stderr.read()
+
+        if stdout_text.strip():
+            for line in stdout_text.strip().splitlines():
+                print(f"   {line}")
+        if stderr_text.strip():
+            print(f"   stderr: {stderr_text.strip()}")
+
+        summary = None
+        if stdout_text.strip():
+            try:
+                summary = json.loads(stdout_text.strip().splitlines()[-1])
+            except json.JSONDecodeError:
+                summary = {"raw_output": stdout_text.strip()}
+
+        if proc.returncode != 0:
+            print(f"   Command exited with code {proc.returncode}")
+
+        return proc.returncode, summary
+
+    snapshot_script = textwrap.dedent(
+        """
+        import json
+        import os
+        import subprocess
+        import sys
+
+        root = "node_modules"
+        if not os.path.isdir(root):
+            print(json.dumps({"error": "node_modules_missing"}))
+            sys.exit(1)
+
+        def run(cmd: str) -> str:
+            result = subprocess.run(["bash", "-lc", cmd], text=True, capture_output=True)
+            if result.returncode != 0:
+                raise RuntimeError(f"Command failed ({cmd}): {result.stderr.strip()}")
+            return result.stdout
+
+        def capture_count(cmd: str) -> int:
+            output = run(cmd).strip()
+            if not output:
+                return 0
+            return int(output.split()[0])
+
+        def capture_lines(cmd: str, limit: int | None = None) -> list[str]:
+            lines = [line.strip() for line in run(cmd).splitlines() if line.strip()]
+            if limit is not None:
+                return lines[:limit]
+            return lines
+
+        data = {
+            "package_json_count": capture_count(
+                "find node_modules -name package.json -type f | wc -l"
+            ),
+            "top_entries": capture_lines(
+                "find node_modules -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 25"
+            ),
+            "sample_packages": capture_lines(
+                "find node_modules/.pnpm -maxdepth 3 -name package.json -type f | LC_ALL=C sort | head -n 50"
+            ),
+            "top_entry_count": len([name for name in os.listdir(root)]),
+        }
+
+        pnpm_dir = os.path.join(root, ".pnpm")
+        if os.path.isdir(pnpm_dir):
+            data["pnpm_entries"] = capture_lines(
+                "find node_modules/.pnpm -maxdepth 1 -mindepth 1 -printf '%f\\n' | LC_ALL=C sort | head -n 25"
+            )
+            data["pnpm_entry_count"] = len([name for name in os.listdir(pnpm_dir)])
+        else:
+            data["pnpm_entries"] = []
+            data["pnpm_entry_count"] = 0
+
+        with open("node_modules_snapshot.json", "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+
+        print(
+            json.dumps(
+                {
+                    "package_json_count": data["package_json_count"],
+                    "top_entries_sample": data["top_entries"][:5],
+                    "pnpm_entries_sample": data["pnpm_entries"][:5],
+                    "sample_package_paths": data["sample_packages"][:5],
+                    "top_entry_count": data["top_entry_count"],
+                    "pnpm_entry_count": data["pnpm_entry_count"],
+                }
+            )
+        )
+        """
+    )
+
+    snapshot_rc, snapshot_summary = run_script_json(
+        sb,
+        snapshot_script,
+        "9. Recording node_modules snapshot before suspend...",
+    )
+
+    if snapshot_rc != 0:
+        print("   ERROR: Failed to record node_modules snapshot.")
+
+    # Check python availability to aid debugging when snapshot capture fails
+    print("\n10. Checking python3 availability inside sandbox...")
+    p = sb.exec("python3", "--version")
+    python_version = p.stdout.read().strip()
+    p.wait()
+    if python_version:
+        print(f"   python3 reports: {python_version}")
+    if p.returncode != 0:
+        print(f"   WARNING: python3 --version returned {p.returncode}")
+
     # Attempt to create a snapshot
-    print("\n9. Attempting to create filesystem snapshot...")
+    print("\n11. Attempting to create filesystem snapshot (simulated suspend)...")
     snapshot_start = time.time()
 
+    resume_sb = None
     try:
         image = sb.snapshot_filesystem()
         snapshot_duration = time.time() - snapshot_start
         print(f"   SUCCESS: Snapshot created in {snapshot_duration:.2f}s")
         print(f"   Snapshot image: {image}")
+
+        print("\n12. Terminating original sandbox before resume...")
+        sb.terminate()
+        print("    Original sandbox terminated")
+
+        print("\n13. Creating resumed sandbox from snapshot image...")
+        resume_start = time.time()
+        with modal.enable_output():
+            resume_sb = modal.Sandbox.create(
+                "bash",
+                "-lc",
+                "sleep infinity",
+                timeout=60 * 60,
+                app=app,
+                image=image,
+                experimental_options={"enable_docker_in_gvisor": True},
+            )
+        print(f"   Resumed sandbox ready in {time.time() - resume_start:.2f}s")
+
+        top_samples = snapshot_summary.get("top_entries_sample") or []
+        pnpm_samples = snapshot_summary.get("pnpm_entries_sample") or []
+        package_samples = snapshot_summary.get("sample_package_paths") or []
+
+        quoted_top = " ".join(shlex.quote(entry) for entry in top_samples)
+        quoted_pnpm = " ".join(shlex.quote(entry) for entry in pnpm_samples)
+        quoted_packages = " ".join(shlex.quote(path) for path in package_samples)
+
+        validation_script = textwrap.dedent(
+            f"""
+            cd /workspace/slidev
+            missing=0
+
+            if [ ! -d node_modules ]; then
+                echo 'missing_dir:node_modules'
+                exit 1
+            fi
+
+            top_count=$(ls node_modules | wc -l)
+            echo "top_count=${{top_count}}"
+
+            if [ -d node_modules/.pnpm ]; then
+                pnpm_count=$(ls node_modules/.pnpm | wc -l)
+                echo "pnpm_count=${{pnpm_count}}"
+            else
+                echo 'pnpm_missing_dir:true'
+                pnpm_count=0
+                missing=1
+            fi
+
+            for entry in {quoted_top}; do
+                if [ "$entry" != "" ] && [ ! -e "node_modules/$entry" ]; then
+                    echo "missing_top:$entry"
+                    missing=1
+                fi
+            done
+
+            if [ $pnpm_count -gt 0 ]; then
+                for entry in {quoted_pnpm}; do
+                    if [ "$entry" != "" ] && [ ! -e "node_modules/.pnpm/$entry" ]; then
+                        echo "missing_pnpm:$entry"
+                        missing=1
+                    fi
+                done
+            fi
+
+            for entry in {quoted_packages}; do
+                if [ "$entry" != "" ] && [ ! -e "$entry" ]; then
+                    echo "missing_package:$entry"
+                    missing=1
+                fi
+            done
+
+            exit $missing
+            """
+        )
+
+        validation_rc, validation_summary = run_script_json(
+            resume_sb,
+            validation_script,
+            "14. Validating node_modules snapshot after resume...",
+            interpreter="bash",
+        )
+
+        if validation_summary and "raw_output" in validation_summary:
+            raw_lines = [line.strip() for line in validation_summary["raw_output"].splitlines() if line.strip()]
+            parsed_summary: dict[str, object] = {
+                "expected_package_json_count": snapshot_summary.get("package_json_count"),
+                "tracked_top_entries": len(top_samples),
+                "tracked_pnpm_entries": len(pnpm_samples),
+                "tracked_sample_packages": len(package_samples),
+                "missing_top_entries": [],
+                "missing_pnpm_entries": [],
+                "missing_sample_packages": [],
+                "present_top_entries": len(top_samples),
+                "present_pnpm_entries": len(pnpm_samples),
+                "present_sample_packages": len(package_samples),
+                "expected_top_entry_count": snapshot_summary.get("top_entry_count"),
+                "expected_pnpm_entry_count": snapshot_summary.get("pnpm_entry_count"),
+                "current_top_entry_count": 0,
+                "current_pnpm_entry_count": 0,
+            }
+
+            for line in raw_lines:
+                if line.startswith("top_count="):
+                    parsed_summary["current_top_entry_count"] = int(line.split("=", 1)[1])
+                elif line.startswith("pnpm_count="):
+                    parsed_summary["current_pnpm_entry_count"] = int(line.split("=", 1)[1])
+                elif line.startswith("missing_top:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_top_entries"].append(entry)
+                    parsed_summary["present_top_entries"] = int(parsed_summary["present_top_entries"]) - 1
+                elif line.startswith("missing_pnpm:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_pnpm_entries"].append(entry)
+                    parsed_summary["present_pnpm_entries"] = int(parsed_summary["present_pnpm_entries"]) - 1
+                elif line.startswith("missing_package:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary["missing_sample_packages"].append(entry)
+                    parsed_summary["present_sample_packages"] = int(parsed_summary["present_sample_packages"]) - 1
+                elif line.startswith("missing_dir:"):
+                    entry = line.split(":", 1)[1]
+                    parsed_summary.setdefault("missing_top_entries", []).append(entry)
+                elif line.startswith("pnpm_missing_dir:"):
+                    parsed_summary.setdefault("missing_pnpm_entries", []).append(".pnpm")
+
+            validation_summary = parsed_summary
+
+        if validation_rc != 0:
+            print("   ERROR: Node_modules integrity mismatch detected after resume.")
+
+        print("\n14b. Attempting pnpm install --offline inside resumed sandbox...")
+        offline_cmd = "cd /workspace/slidev && pnpm install --offline"
+        offline_proc = resume_sb.exec("bash", "-lc", offline_cmd)
+        offline_stdout = [line.strip() for line in offline_proc.stdout]
+        offline_proc.wait()
+        offline_stderr = offline_proc.stderr.read().strip()
+
+        for line in offline_stdout[:20]:
+            print(f"   {line}")
+        if offline_stderr:
+            print(f"   stderr: {offline_stderr}")
+        if offline_proc.returncode != 0:
+            print(
+                "   pnpm install --offline FAILED (this indicates missing modules after resume)."
+            )
+            validation_rc = validation_rc if validation_rc != 0 else offline_proc.returncode
+        else:
+            print("   pnpm install --offline succeeded.")
     except Exception as e:
         snapshot_duration = time.time() - snapshot_start
-        print(f"   FAILED: Snapshot failed after {snapshot_duration:.2f}s")
+        print(f"   FAILED: Snapshot or resume failed after {snapshot_duration:.2f}s")
         print(f"   Error: {str(e)}")
         print(f"   Error type: {type(e).__name__}")
+        validation_summary = None
+        validation_rc = -1
+    finally:
+        if resume_sb is not None:
+            print("\n15. Terminating resumed sandbox...")
+            resume_sb.terminate()
+            print("    Resumed sandbox terminated")
 
     # Clean up
-    print("\n10. Terminating sandbox...")
-    sb.terminate()
-    print("    Sandbox terminated")
+    if 'image' not in locals():
+        print("\nCleanup: Terminating sandbox...")
+        sb.terminate()
+        print("    Sandbox terminated")
 
     # Summary
     print("\n" + "=" * 60)
@@ -129,9 +418,63 @@ def main():
     print(f"Packages installed: {package_count}")
     print(f"Install duration: {install_duration:.2f}s")
     print(f"Snapshot attempt: {'SUCCESS' if 'image' in locals() else 'FAILED'}")
-    if "image" in locals():
+    if 'image' in locals():
         print(f"Snapshot duration: {snapshot_duration:.2f}s")
+    if snapshot_summary:
+        print(
+            "Package.json count before suspend: "
+            f"{snapshot_summary.get('package_json_count', 'n/a')}"
+        )
+        top_sample = snapshot_summary.get("top_entries_sample") or []
+        if top_sample:
+            print(
+                "Top-level entries sample before suspend: "
+                + ", ".join(top_sample[:5])
+            )
+    if 'validation_summary' in locals() and validation_summary:
+        print(
+            "Tracked top entries present after resume: "
+            f"{validation_summary.get('present_top_entries', 'n/a')} / "
+            f"{validation_summary.get('tracked_top_entries', 'n/a')}"
+        )
+        print(
+            "Tracked .pnpm entries present after resume: "
+            f"{validation_summary.get('present_pnpm_entries', 'n/a')} / "
+            f"{validation_summary.get('tracked_pnpm_entries', 'n/a')}"
+        )
+        print(
+            "Tracked package.json samples present after resume: "
+            f"{validation_summary.get('present_sample_packages', 'n/a')} / "
+            f"{validation_summary.get('tracked_sample_packages', 'n/a')}"
+        )
+        print(
+            "Top-level entry count after resume: "
+            f"{validation_summary.get('current_top_entry_count', 'n/a')} "
+            f"(expected {validation_summary.get('expected_top_entry_count', 'n/a')})"
+        )
+        print(
+            ".pnpm entry count after resume: "
+            f"{validation_summary.get('current_pnpm_entry_count', 'n/a')} "
+            f"(expected {validation_summary.get('expected_pnpm_entry_count', 'n/a')})"
+        )
+        if validation_summary.get("missing_top_entries"):
+            print("Missing top-level entries:")
+            for entry in validation_summary["missing_top_entries"][:5]:
+                print(f"  - {entry}")
+        if validation_summary.get("missing_pnpm_entries"):
+            print("Missing .pnpm entries:")
+            for entry in validation_summary["missing_pnpm_entries"][:5]:
+                print(f"  - {entry}")
+        if validation_summary.get("missing_sample_packages"):
+            print("Missing sampled package.json files:")
+            for entry in validation_summary["missing_sample_packages"][:5]:
+                print(f"  - {entry}")
+    if 'validation_rc' in locals():
+        print(f"Node_modules validation: {'PASS' if validation_rc == 0 else 'FAIL'}")
     print("=" * 60)
+
+    if 'validation_rc' in locals() and validation_rc != 0:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
