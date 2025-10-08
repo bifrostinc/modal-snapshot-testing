@@ -45,6 +45,27 @@ def main():
     with sb.open("/docker-compose.yml", "w") as f:
         f.write(docker_compose_content)
 
+    # Output package versions
+    print("\n=== Package Versions ===")
+    packages = [
+        ("curl", "curl --version"),
+        ("wget", "wget --version"),
+        ("git", "git --version"),
+        ("gcc", "gcc --version"),
+        ("gnupg", "gpg --version"),
+        ("python3", "python3 --version"),
+        ("pip", "pip3 --version"),
+        ("docker", "docker --version"),
+        ("iptables", "iptables --version"),
+        ("ripgrep", "rg --version"),
+    ]
+
+    for name, cmd in packages:
+        print(f"\n{name}:")
+        p = sb.exec("sh", "-c", f"{cmd} | head -1")
+        print(p.stdout.read().strip())
+    print("========================\n")
+
     # Run docker-compose up
     print("Running docker-compose up")
     p = sb.exec("docker-compose", "-p", "docker-compose-demo", "up")
