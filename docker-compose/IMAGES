@@ -1,0 +1,6 @@
+- 🛑 Both packages: niteshift/sandbox-docker-image@sha256:bfa2e046dcadf293faf92fd8868c456d36fed911b90915dc56bba61ddb858ce2
+- 🛑 - libmagic, + python3-venv: niteshift/sandbox-docker-image@sha256:19ae5e9cf0c24379e08f0c929fef5af2e90d954615882fd39cb4461100b69a76
+- 🛑 + libmagic,- python3-venv: niteshift/sandbox-docker-image@sha256:77b275f2972deb8310f9f81c3ef78e721db49d630ff99ff04a7790533da9f268
+- 🛑 Neither package: niteshift/sandbox-docker-image@sha256:86a12753cc3463abe99c7c09f1b05dd92cf5d807a0e42568ca6c67b3556fb672
+- ✅ Pre change: niteshift/sandbox-docker-image@sha256:3c06f3d44efaa0bc0d51af8f0082186dff5fc14da46b26f05b1ca00cf5f1e114
+- ✅ Docker pin: niteshift/sandbox-docker-image@sha256:7c12f72738cef7a262a2629ed83b7876cdeb84087440bedc4398f78f505c2438 
